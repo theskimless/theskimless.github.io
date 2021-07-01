@@ -440,55 +440,135 @@ var app = (function () {
 
     const file = "src\\App.svelte";
 
-    function create_fragment(ctx) {
-    	let div1;
+    // (21:1) {:else}
+    function create_else_block(ctx) {
+    	let div;
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			div.textContent = "test";
+    			add_location(div, file, 21, 2, 382);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block.name,
+    		type: "else",
+    		source: "(21:1) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (15:1) {#if currentView === VIEWS.startPage}
+    function create_if_block(ctx) {
     	let h1;
     	let t1;
-    	let div0;
+    	let div;
     	let button;
     	let mounted;
     	let dispose;
 
     	const block = {
     		c: function create() {
-    			div1 = element("div");
     			h1 = element("h1");
     			h1.textContent = "Sofia L❤ve Simulator";
     			t1 = space();
-    			div0 = element("div");
+    			div = element("div");
     			button = element("button");
     			button.textContent = "START";
     			attr_dev(h1, "class", "title svelte-1fbvqk7");
-    			add_location(h1, file, 14, 1, 190);
+    			add_location(h1, file, 15, 2, 230);
     			attr_dev(button, "class", "svelte-1fbvqk7");
-    			add_location(button, file, 17, 2, 270);
-    			attr_dev(div0, "class", "start-btn-wrapper svelte-1fbvqk7");
-    			add_location(div0, file, 16, 1, 236);
-    			attr_dev(div1, "class", "wrapper svelte-1fbvqk7");
-    			add_location(div1, file, 13, 0, 167);
+    			add_location(button, file, 18, 3, 312);
+    			attr_dev(div, "class", "start-btn-wrapper svelte-1fbvqk7");
+    			add_location(div, file, 17, 2, 277);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, h1, anchor);
+    			insert_dev(target, t1, anchor);
+    			insert_dev(target, div, anchor);
+    			append_dev(div, button);
+
+    			if (!mounted) {
+    				dispose = listen_dev(button, "click", /*onStartBtnClick*/ ctx[2], false, false, false);
+    				mounted = true;
+    			}
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(h1);
+    			if (detaching) detach_dev(t1);
+    			if (detaching) detach_dev(div);
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block.name,
+    		type: "if",
+    		source: "(15:1) {#if currentView === VIEWS.startPage}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment(ctx) {
+    	let div;
+
+    	function select_block_type(ctx, dirty) {
+    		if (/*currentView*/ ctx[0] === /*VIEWS*/ ctx[1].startPage) return create_if_block;
+    		return create_else_block;
+    	}
+
+    	let current_block_type = select_block_type(ctx);
+    	let if_block = current_block_type(ctx);
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			if_block.c();
+    			attr_dev(div, "class", "wrapper svelte-1fbvqk7");
+    			add_location(div, file, 13, 0, 167);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, div1, anchor);
-    			append_dev(div1, h1);
-    			append_dev(div1, t1);
-    			append_dev(div1, div0);
-    			append_dev(div0, button);
+    			insert_dev(target, div, anchor);
+    			if_block.m(div, null);
+    		},
+    		p: function update(ctx, [dirty]) {
+    			if (current_block_type === (current_block_type = select_block_type(ctx)) && if_block) {
+    				if_block.p(ctx, dirty);
+    			} else {
+    				if_block.d(1);
+    				if_block = current_block_type(ctx);
 
-    			if (!mounted) {
-    				dispose = listen_dev(button, "click", /*onStartBtnClick*/ ctx[0], false, false, false);
-    				mounted = true;
+    				if (if_block) {
+    					if_block.c();
+    					if_block.m(div, null);
+    				}
     			}
     		},
-    		p: noop,
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(div1);
-    			mounted = false;
-    			dispose();
+    			if (detaching) detach_dev(div);
+    			if_block.d();
     		}
     	};
 
@@ -510,7 +590,7 @@ var app = (function () {
     	let currentView = VIEWS.startPage;
 
     	const onStartBtnClick = () => {
-    		currentView = VIEWS.game;
+    		$$invalidate(0, currentView = VIEWS.game);
     	};
 
     	const writable_props = [];
@@ -522,14 +602,14 @@ var app = (function () {
     	$$self.$capture_state = () => ({ VIEWS, currentView, onStartBtnClick });
 
     	$$self.$inject_state = $$props => {
-    		if ("currentView" in $$props) currentView = $$props.currentView;
+    		if ("currentView" in $$props) $$invalidate(0, currentView = $$props.currentView);
     	};
 
     	if ($$props && "$$inject" in $$props) {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [onStartBtnClick];
+    	return [currentView, VIEWS, onStartBtnClick];
     }
 
     class App extends SvelteComponentDev {
